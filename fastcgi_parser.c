@@ -55,11 +55,18 @@ do {                                                                \
 	}                                                               \
 } while (0)
 
-#define ENDING_STATUS() if(parser->plen == 0) {                     \
-	parser->stat = STATUS_HEAD_VERSION;                             \
-}else{                                                              \
-	parser->stat = STATUS_TAIL_PADDING;                             \
-}
+#define PARSE_ENDING()                                             \
+do {                                                                \
+	if (settings->on_end_request &&                                 \
+		settings->on_end_request(parser) != 0) {                    \
+		return i;                                                   \
+	}                                                               \
+	if (parser->plen == 0) {                                        \
+		parser->stat = STATUS_HEAD_VERSION;                         \
+	}else{                                                          \
+		parser->stat = STATUS_TAIL_PADDING;                         \
+	}                                                               \
+} while (0)
 
 void fastcgi_parser_init(fastcgi_parser* parser, fastcgi_parser_settings* settings) {
 	parser->stat = 0;
@@ -165,7 +172,7 @@ size_t fastcgi_parser_execute(fastcgi_parser* parser, fastcgi_parser_settings* s
 		case STATUS_BODY_1_RESERVED_5:
 			--parser->clen;
 			EMIT_NOTIFY_CB(begin_request);
-			ENDING_STATUS();
+			PARSE_ENDING();
 			break;
 		case STATUS_BODY_2_KEY_LEN_1:
 			--parser->clen;
@@ -224,7 +231,7 @@ size_t fastcgi_parser_execute(fastcgi_parser* parser, fastcgi_parser_settings* s
 			if(--parser->klen == 0) {
 				EMIT_DATA_CB(param_key, data + mark, i - mark);
 				if(parser->clen == 0) {
-					ENDING_STATUS();
+					PARSE_ENDING();
 				}else if(parser->vlen > 0) {
 					parser->stat = STATUS_BODY_2_VAL_DATA;
 					mark = i;
@@ -243,7 +250,7 @@ size_t fastcgi_parser_execute(fastcgi_parser* parser, fastcgi_parser_settings* s
 				EMIT_DATA_CB(param_val, data + mark, i - mark);
 				EMIT_NOTIFY_CB(after_param);
 				if(parser->clen == 0) {
-					ENDING_STATUS();
+					PARSE_ENDING();
 				}else{
 					parser->stat = STATUS_BODY_2_KEY_LEN_1;
 				}
@@ -255,7 +262,7 @@ size_t fastcgi_parser_execute(fastcgi_parser* parser, fastcgi_parser_settings* s
 		case STATUS_BODY_3_DATA:
 			if(--parser->clen == 0) {
 				EMIT_DATA_CB(data, data + mark, i - mark);
-				ENDING_STATUS();
+				PARSE_ENDING();
 			}
 			if(last) {
 				EMIT_DATA_CB(data, data + mark, i - mark);

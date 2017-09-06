@@ -58,6 +58,7 @@ typedef struct {
 	fastcgi_notify_cb on_after_all_param;
 	fastcgi_data_cb on_data;
 	fastcgi_notify_cb on_after_data;
+	fastcgi_notify_cb on_end_request;
 } fastcgi_parser_settings;
 
 void fastcgi_parser_init(fastcgi_parser* parser, fastcgi_parser_settings* settings);
