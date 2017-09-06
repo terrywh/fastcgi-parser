@@ -10,7 +10,7 @@ libfastcig_parser.a: kv_parser.o
 	$(AR) rcs $@ $^
 
 clean:
-	rm -f *.o *.so
+	rm -f *.o *.a *.so
 fastcig_parser_test: fastcig_parser.o fastcig_parser_test.o
 	$(CC) $^ -o $@
 test: fastcig_parser_test

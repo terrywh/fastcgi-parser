@@ -1,4 +1,5 @@
 #include "fastcgi_parser.h"
+#include "stdio.h"
 
 enum STATUS_t {
 	// 1. RECORD
@@ -41,7 +42,7 @@ enum STATUS_t {
 do {                                                                \
 	if (settings->on_##FOR) {                                       \
 		if (settings->on_##FOR(parser, ptr, len) != 0) {            \
-			return i;                                               \
+			goto CONTINUE_STOP;                                     \
 		}                                                           \
 	}                                                               \
 } while (0)
@@ -50,17 +51,13 @@ do {                                                                \
 do {                                                                \
 	if (settings->on_##FOR) {                                       \
 		if (settings->on_##FOR(parser) != 0) {                      \
-			return i;                                               \
+			goto CONTINUE_STOP;                                     \
 		}                                                           \
 	}                                                               \
 } while (0)
 
-#define PARSE_ENDING()                                             \
+#define PARSE_ENDING()                                              \
 do {                                                                \
-	if (settings->on_end_request &&                                 \
-		settings->on_end_request(parser) != 0) {                    \
-		return i;                                                   \
-	}                                                               \
 	if (parser->plen == 0) {                                        \
 		parser->stat = STATUS_HEAD_VERSION;                         \
 	}else{                                                          \
@@ -122,7 +119,7 @@ size_t fastcgi_parser_execute(fastcgi_parser* parser, fastcgi_parser_settings* s
 				break;
 				case FASTCGI_TYPE_STDIN:
 					parser->stat = STATUS_BODY_3_DATA;
-					mark = i;
+					mark = i + 1;
 				break;
 				default:
 					// 暂不支持其他类型的解析
@@ -131,17 +128,16 @@ size_t fastcgi_parser_execute(fastcgi_parser* parser, fastcgi_parser_settings* s
 			}else{
 				switch(parser->type) {
 				case FASTCGI_TYPE_PARAMS:
-					EMIT_NOTIFY_CB(after_all_param);
 					break;
 				case FASTCGI_TYPE_STDIN:
-					EMIT_NOTIFY_CB(after_data);
+					EMIT_NOTIFY_CB(end_request);
 					break;
 				default:
 					// 暂不支持其他类型的解析
 					assert(0);
 				}
+				parser->stat = STATUS_HEAD_VERSION;
 			}
-			parser->stat = STATUS_HEAD_VERSION;
 			break;
 		case STATUS_BODY_1_ROLE_1:
 			--parser->clen;
@@ -207,7 +203,7 @@ size_t fastcgi_parser_execute(fastcgi_parser* parser, fastcgi_parser_settings* s
 			}else{
 				parser->vlen = c;
 				parser->stat = STATUS_BODY_2_KEY_DATA;
-				mark = i;
+				mark = i + 1;
 			}
 			break;
 		case STATUS_BODY_2_VAL_LEN_2:
@@ -224,31 +220,31 @@ size_t fastcgi_parser_execute(fastcgi_parser* parser, fastcgi_parser_settings* s
 			--parser->clen;
 			parser->vlen += (c & 0xff);
 			parser->stat = STATUS_BODY_2_KEY_DATA;
-			mark = i;
+			mark = i + 1;
 			break;
 		case STATUS_BODY_2_KEY_DATA:
 			--parser->clen;
 			if(--parser->klen == 0) {
-				EMIT_DATA_CB(param_key, data + mark, i - mark);
+				EMIT_DATA_CB(param_key, data + mark, i - mark + 1);
 				if(parser->clen == 0) {
 					PARSE_ENDING();
 				}else if(parser->vlen > 0) {
 					parser->stat = STATUS_BODY_2_VAL_DATA;
-					mark = i;
+					mark = i + 1;
 				}else{
-					EMIT_NOTIFY_CB(after_param);
+					EMIT_NOTIFY_CB(end_param);
 					parser->stat = STATUS_BODY_2_KEY_LEN_1;
 				}
 			}
 			if(last) {
-				EMIT_DATA_CB(param_key, data + mark, i - mark);
+				EMIT_DATA_CB(param_key, data + mark, i - mark + 1);
 			}
 			break;
 		case STATUS_BODY_2_VAL_DATA:
 			--parser->clen;
 			if(--parser->vlen == 0) {
-				EMIT_DATA_CB(param_val, data + mark, i - mark);
-				EMIT_NOTIFY_CB(after_param);
+				EMIT_DATA_CB(param_val, data + mark, i - mark + 1);
+				EMIT_NOTIFY_CB(end_param);
 				if(parser->clen == 0) {
 					PARSE_ENDING();
 				}else{
@@ -256,16 +252,16 @@ size_t fastcgi_parser_execute(fastcgi_parser* parser, fastcgi_parser_settings* s
 				}
 			}
 			if(last) {
-				EMIT_DATA_CB(param_val, data + mark, i - mark);
+				EMIT_DATA_CB(param_val, data + mark, i - mark + 1);
 			}
 			break;
 		case STATUS_BODY_3_DATA:
 			if(--parser->clen == 0) {
-				EMIT_DATA_CB(data, data + mark, i - mark);
+				EMIT_DATA_CB(data, data + mark, i - mark + 1);
 				PARSE_ENDING();
 			}
 			if(last) {
-				EMIT_DATA_CB(data, data + mark, i - mark);
+				EMIT_DATA_CB(data, data + mark, i - mark + 1);
 			}
 			break;
 		case STATUS_TAIL_PADDING:
@@ -276,6 +272,7 @@ size_t fastcgi_parser_execute(fastcgi_parser* parser, fastcgi_parser_settings* s
 		}
 CONTINUE_NEXT:
 		++i;
+CONTINUE_REDO:
 		continue;
 CONTINUE_STOP:
 		break;

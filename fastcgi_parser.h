@@ -52,12 +52,11 @@ typedef int (*fastcgi_notify_cb)(fastcgi_parser*);
 
 typedef struct {
 	fastcgi_notify_cb on_begin_request;
-	fastcgi_data_cb on_param_key;
-	fastcgi_data_cb on_param_val;
-	fastcgi_notify_cb on_after_param;
-	fastcgi_notify_cb on_after_all_param;
-	fastcgi_data_cb on_data;
-	fastcgi_notify_cb on_after_data;
+	fastcgi_data_cb   on_param_key;
+	fastcgi_data_cb   on_param_val;
+	fastcgi_notify_cb on_end_param; // called after each pair (param k/v)
+	fastcgi_data_cb   on_data;
+	fastcgi_notify_cb on_end_data;
 	fastcgi_notify_cb on_end_request;
 } fastcgi_parser_settings;
 
