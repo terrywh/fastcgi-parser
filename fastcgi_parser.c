@@ -67,6 +67,7 @@ do {                                                                \
 
 void fastcgi_parser_init(fastcgi_parser* parser, fastcgi_parser_settings* settings) {
 	parser->stat = 0;
+	parser->request_id = parser->last_request_id = 0;
 }
 
 size_t fastcgi_parser_execute(fastcgi_parser* parser, fastcgi_parser_settings* settings, const char* data, size_t size) {
@@ -130,7 +131,13 @@ size_t fastcgi_parser_execute(fastcgi_parser* parser, fastcgi_parser_settings* s
 				case FASTCGI_TYPE_PARAMS:
 					break;
 				case FASTCGI_TYPE_STDIN:
-					EMIT_NOTIFY_CB(end_request);
+					// 当 HTTP 请求携带 Transfer-Encoding: chunked 时，Nginx 会发送
+					// 两次 空 STDIN 包（原因不明，在 FastCGI 协议中也未找到此种标准说明）
+					// 需要抛弃第二次空包的处理
+					if(parser->last_request_id != parser->request_id) {
+						parser->last_request_id = parser->request_id;
+						EMIT_NOTIFY_CB(end_request);
+					}
 					break;
 				default:
 					// 暂不支持其他类型的解析

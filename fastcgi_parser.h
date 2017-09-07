@@ -38,6 +38,7 @@ typedef struct {
 	int   type;
 	int   role;
 	int   request_id;
+	int   last_request_id;
 	int   flag;
 	// parser status / cache
 	int   stat;
