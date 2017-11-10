@@ -61,7 +61,7 @@ typedef struct {
 	fastcgi_notify_cb on_end_request;
 } fastcgi_parser_settings;
 
-void fastcgi_parser_init(fastcgi_parser* parser, fastcgi_parser_settings* settings);
+void fastcgi_parser_init(fastcgi_parser* parser);
 size_t fastcgi_parser_execute(fastcgi_parser* parser, fastcgi_parser_settings* settings, const char* data, size_t len);
 
 #ifdef __cplusplus

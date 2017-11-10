@@ -65,7 +65,7 @@ do {                                                                \
 	}                                                               \
 } while (0)
 
-void fastcgi_parser_init(fastcgi_parser* parser, fastcgi_parser_settings* settings) {
+void fastcgi_parser_init(fastcgi_parser* parser) {
 	parser->stat = 0;
 	parser->request_id = parser->last_request_id = 0;
 }
