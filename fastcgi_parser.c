@@ -98,11 +98,11 @@ size_t fastcgi_parser_execute(fastcgi_parser* parser, fastcgi_parser_settings* s
 			parser->stat = STATUS_HEAD_CONTENT_LEN_1;
 			break;
 		case STATUS_HEAD_CONTENT_LEN_1:
-			parser->clen = c << 8;
+			parser->clen = (unsigned char)c << 8;
 			parser->stat = STATUS_HEAD_CONTENT_LEN_2;
 			break;
 		case STATUS_HEAD_CONTENT_LEN_2:
-			parser->clen += c & 0xff;
+			parser->clen += (unsigned char)c & 0xff;
 			parser->stat = STATUS_HEAD_PADDING_LEN;
 			break;
 		case STATUS_HEAD_PADDING_LEN:
