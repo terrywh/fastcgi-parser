@@ -129,15 +129,10 @@ size_t fastcgi_parser_execute(fastcgi_parser* parser, fastcgi_parser_settings* s
 			}else{
 				switch(parser->type) {
 				case FASTCGI_TYPE_PARAMS:
+					EMIT_NOTIFY_CB(end_params);
 					break;
 				case FASTCGI_TYPE_STDIN:
-					// 当 HTTP 请求携带 Transfer-Encoding: chunked 时，Nginx 会发送
-					// 两次 空 STDIN 包（原因不明，在 FastCGI 协议中也未找到此种标准说明）
-					// 需要抛弃第二次空包的处理
-					if(parser->last_request_id != parser->request_id) {
-						parser->last_request_id = parser->request_id;
-						EMIT_NOTIFY_CB(end_request);
-					}
+					EMIT_NOTIFY_CB(end_request);
 					break;
 				default:
 					// 暂不支持其他类型的解析
@@ -234,6 +229,7 @@ size_t fastcgi_parser_execute(fastcgi_parser* parser, fastcgi_parser_settings* s
 			if(--parser->klen == 0) {
 				EMIT_DATA_CB(param_key, data + mark, i - mark + 1);
 				if(parser->clen == 0) {
+					EMIT_NOTIFY_CB(end_param);
 					PARSE_ENDING();
 				}else if(parser->vlen > 0) {
 					parser->stat = STATUS_BODY_2_VAL_DATA;

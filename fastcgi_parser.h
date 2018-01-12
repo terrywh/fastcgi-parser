@@ -56,6 +56,7 @@ typedef struct {
 	fastcgi_data_cb   on_param_key;
 	fastcgi_data_cb   on_param_val;
 	fastcgi_notify_cb on_end_param; // called after each pair (param k/v)
+	fastcgi_notify_cb on_end_params; // called after all k/v pairs
 	fastcgi_data_cb   on_data;
 	fastcgi_notify_cb on_end_data;
 	fastcgi_notify_cb on_end_request;
